@@ -12,8 +12,6 @@ import os
 import argparse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from srs_conversion import convert_srs
-
 def analyze_dss_run(results_file):
     """
     Analyze DSS synthesis results from a pickled file.
@@ -193,28 +191,16 @@ def create_srs_unit_comparison_plots(result, results_file):
     freq_spec = result['freq_spec']
     accel_spec = result['accel_spec']
     
-    # Convert specifications to velocity and displacement
-    vel_spec = convert_srs(accel_spec, freq_spec, "acceleration", "velocity", "g", "in/sec")
-    disp_spec = convert_srs(accel_spec, freq_spec, "acceleration", "displacement", "g", "inches")
-    
-    # Convert synthesized SRS to velocity and displacement
-    srs_vel_pos = convert_srs(srs_positive, srs_frequencies, "acceleration", "velocity", "g", "in/sec")
-    srs_vel_neg = convert_srs(srs_negative, srs_frequencies, "acceleration", "velocity", "g", "in/sec")
-    srs_disp_pos = convert_srs(srs_positive, srs_frequencies, "acceleration", "displacement", "g", "inches")
-    srs_disp_neg = convert_srs(srs_negative, srs_frequencies, "acceleration", "displacement", "g", "inches")
-    
     # Interpolate specs to SRS frequencies for tolerance bands
     accel_spec_interp = np.interp(srs_frequencies, freq_spec, accel_spec)
-    vel_spec_interp = convert_srs(accel_spec_interp, srs_frequencies, "acceleration", "velocity", "g", "in/sec")
-    disp_spec_interp = convert_srs(accel_spec_interp, srs_frequencies, "acceleration", "displacement", "g", "inches")
     
-    # Create comprehensive SRS comparison figure
-    fig = plt.figure(figsize=(15, 12))
-    fig.suptitle(f'Multi-Unit SRS Comparison: {os.path.basename(results_file)}', 
+    # Create SRS comparison figure (acceleration only)
+    fig = plt.figure(figsize=(15, 8))
+    fig.suptitle(f'SRS Comparison: {os.path.basename(results_file)}', 
                  fontsize=16, fontweight='bold')
     
     # Plot 1: Acceleration SRS
-    ax1 = plt.subplot(2, 3, 1)
+    ax1 = plt.subplot(1, 2, 1)
     plt.loglog(srs_frequencies, accel_spec_interp * 10**(3/20), 'r:', alpha=0.7, linewidth=1, label='±3dB tolerance')
     plt.loglog(srs_frequencies, accel_spec_interp * 10**(-3/20), 'r:', alpha=0.7, linewidth=1)
     plt.loglog(freq_spec, accel_spec, 'ro-', linewidth=3, markersize=8, label='Target Spec', zorder=10)
@@ -222,69 +208,33 @@ def create_srs_unit_comparison_plots(result, results_file):
     plt.loglog(srs_frequencies, srs_negative, 'b--', linewidth=2, label='Synthesized (-)')
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Acceleration (G)')
-    plt.title('Acceleration SRS')
+    plt.title('Acceleration SRS Comparison')
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=10)
     plt.xlim([10, 20000])
     
-    # Plot 2: Velocity SRS  
-    ax2 = plt.subplot(2, 3, 2)
-    plt.loglog(srs_frequencies, vel_spec_interp * 10**(3/20), 'r:', alpha=0.7, linewidth=1, label='±3dB tolerance')
-    plt.loglog(srs_frequencies, vel_spec_interp * 10**(-3/20), 'r:', alpha=0.7, linewidth=1)
-    plt.loglog(freq_spec, vel_spec, 'ro-', linewidth=3, markersize=8, label='Target Spec', zorder=10)
-    plt.loglog(srs_frequencies, srs_vel_pos, 'g-', linewidth=2, label='Synthesized (+)')
-    plt.loglog(srs_frequencies, srs_vel_neg, 'g--', linewidth=2, label='Synthesized (-)')
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Velocity (in/sec)')
-    plt.title('Velocity SRS')
-    plt.grid(True, alpha=0.3)
-    plt.legend(fontsize=10)
-    plt.xlim([10, 20000])
-    
-    # Plot 3: Displacement SRS
-    ax3 = plt.subplot(2, 3, 3)
-    plt.loglog(srs_frequencies, disp_spec_interp * 10**(3/20), 'r:', alpha=0.7, linewidth=1, label='±3dB tolerance')
-    plt.loglog(srs_frequencies, disp_spec_interp * 10**(-3/20), 'r:', alpha=0.7, linewidth=1)
-    plt.loglog(freq_spec, disp_spec, 'ro-', linewidth=3, markersize=8, label='Target Spec', zorder=10)
-    plt.loglog(srs_frequencies, srs_disp_pos, 'm-', linewidth=2, label='Synthesized (+)')
-    plt.loglog(srs_frequencies, srs_disp_neg, 'm--', linewidth=2, label='Synthesized (-)')
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Displacement (inches)')
-    plt.title('Displacement SRS')
-    plt.grid(True, alpha=0.3)
-    plt.legend(fontsize=10)
-    plt.xlim([10, 20000])
-    
-    # Error analysis plots
+    # Plot 2: Acceleration SRS Error
+    ax2 = plt.subplot(1, 2, 2)
     error_pos = 20 * np.log10(srs_positive / accel_spec_interp)
-    vel_error_pos = 20 * np.log10(srs_vel_pos / vel_spec_interp)  
-    disp_error_pos = 20 * np.log10(srs_disp_pos / disp_spec_interp)
-    
-    for i, (errors, title, color) in enumerate([
-        (error_pos, 'Acceleration SRS Error', 'b'),
-        (vel_error_pos, 'Velocity SRS Error', 'g'),
-        (disp_error_pos, 'Displacement SRS Error', 'm')
-    ]):
-        ax = plt.subplot(2, 3, 4 + i)
-        plt.semilogx(srs_frequencies, errors, f'{color}-', linewidth=2, label='Error')
-        plt.axhline(y=0, color='k', linestyle='-', alpha=0.5)
-        plt.axhline(y=3, color='r', linestyle=':', alpha=0.7, label='±3dB tolerance')
-        plt.axhline(y=-3, color='r', linestyle=':', alpha=0.7)
-        plt.xlabel('Frequency (Hz)')
-        plt.ylabel('Error (dB)')
-        plt.title(title)
-        plt.grid(True, alpha=0.3)
-        plt.legend(fontsize=10)
-        plt.ylim([-6, 6])
-        plt.xlim([10, 20000])
+    plt.semilogx(srs_frequencies, error_pos, 'b-', linewidth=2, label='SRS Error (+)')
+    plt.axhline(y=0, color='k', linestyle='-', alpha=0.5)
+    plt.axhline(y=3, color='r', linestyle=':', alpha=0.7, label='±3dB tolerance')
+    plt.axhline(y=-3, color='r', linestyle=':', alpha=0.7)
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Error (dB)')
+    plt.title('Acceleration SRS Error')
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10)
+    plt.xlim([10, 20000])
+    plt.ylim([-6, 6])
     
     plt.tight_layout()
     
-    # Save the comprehensive SRS plots
+    # Save the SRS plots
     base_name = os.path.splitext(results_file)[0]
-    srs_plot_filename = f'{base_name}_multi_unit_srs.png'
+    srs_plot_filename = f'{base_name}_srs_analysis.png'
     plt.savefig(srs_plot_filename, dpi=300, bbox_inches='tight')
-    print(f"Multi-unit SRS comparison plots saved as: {srs_plot_filename}")
+    print(f"SRS analysis plots saved as: {srs_plot_filename}")
     
     plt.show()
 

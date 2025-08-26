@@ -9,11 +9,10 @@ import numpy as np
 import os
 import sys
 
-# Add current directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to path for package imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from srs_damped_sine_synthesis import SRSSynthesizer
-from srs_conversion import convert_srs
+from srs_synthesis.damped_sine import DSSynthesizer
 
 
 class TestSRSSynthesis(unittest.TestCase):
@@ -21,7 +20,7 @@ class TestSRSSynthesis(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.synthesizer = SRSSynthesizer()
+        self.synthesizer = DSSynthesizer()
         self.test_freq = np.array([100., 200.])        # 2 points (minimum required)
         self.test_accel = np.array([30., 40.])         # 2 points
         self.duration = 0.03                           # 30ms for speed
@@ -137,51 +136,6 @@ class TestSRSSynthesis(unittest.TestCase):
         np.testing.assert_allclose(np.diff(time), dt, rtol=1e-10)  # Uniform spacing
 
 
-class TestUnitConversions(unittest.TestCase):
-    """Test SRS unit conversion functionality."""
-    
-    def test_conversion_accuracy_and_round_trips(self):
-        """Test unit conversions work correctly and preserve values in round trips."""
-        # Test data
-        accel_g = np.array([10., 50., 100.])
-        freq = np.array([10., 100., 1000.])
-        
-        # Test basic conversions
-        accel_ms2 = convert_srs(accel_g, freq, "acceleration", "acceleration", "g", "m/s²")
-        expected_ms2 = accel_g * 9.80665
-        np.testing.assert_allclose(accel_ms2, expected_ms2, rtol=1e-10)
-        
-        # Test round-trip conversion preserves original values
-        accel_back = convert_srs(accel_ms2, freq, "acceleration", "acceleration", "m/s²", "g")
-        np.testing.assert_allclose(accel_back, accel_g, rtol=1e-10)
-        
-        # Test velocity conversion (use supported units)
-        vel_direct = convert_srs(accel_g, freq, "acceleration", "velocity", "g", "in/sec")
-        self.assertEqual(len(vel_direct), len(accel_g))
-        self.assertTrue(np.all(vel_direct > 0))
-        
-        # Test invalid unit handling
-        with self.assertRaises(ValueError):
-            convert_srs(accel_g, freq, "acceleration", "acceleration", "invalid_unit", "m/s²")
-    
-    def test_wavelet_reconstruction(self):
-        """Test wavelet reconstruction functionality if available."""
-        synthesizer = SRSSynthesizer()
-        
-        # Try wavelet reconstruction - should either work or gracefully skip
-        try:
-            result = synthesizer.synthesize_srs(
-                np.array([150., 300.]), np.array([25., 35.]), 0.03, 4096,
-                fast_wavelet_mode=True, max_iterations=2, wavelet_trials=3
-            )
-            # If it works, should have basic structure
-            self.assertIn('acceleration', result)
-            self.assertIsInstance(result['synthesis_error'], (int, float))
-        except (NotImplementedError, AttributeError):
-            # If wavelet mode not implemented, should skip gracefully
-            self.skipTest("Wavelet reconstruction not available")
-
-
 if __name__ == '__main__':
     print("Damped Sine Synthesis (DSS) Essential Unit Tests")
     print("=" * 50)
@@ -192,7 +146,7 @@ if __name__ == '__main__':
     # Quick performance check
     print("\nPerformance Check:")
     print("=" * 20)
-    synthesizer = SRSSynthesizer()
+    synthesizer = DSSynthesizer()
     
     import time
     start_time = time.time()

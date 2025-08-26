@@ -12,8 +12,6 @@ import os
 import argparse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from srs_conversion import convert_srs
-
 def analyze_ws_run(results_file):
     """
     Analyze WS synthesis results from a pickled file.

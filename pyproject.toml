@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "srs-synthesis"
+version = "1.0.0"
+authors = [{name = "Nate Costello", email = "nate@example.com"}]
+description = "SRS synthesis algorithms for generating shock response spectrum time histories"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+keywords = ["shock", "response", "spectrum", "srs", "synthesis", "vibration", "testing"]
+dependencies = [
+    "numpy>=1.20.0",
+    "scipy>=1.7.0",
+    "matplotlib>=3.3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/natecostello/SRS-synthesis"
+Repository = "https://github.com/natecostello/SRS-synthesis"
+Issues = "https://github.com/natecostello/SRS-synthesis/issues"
+Documentation = "https://github.com/natecostello/SRS-synthesis#readme"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["srs_synthesis*"]
+
+[tool.setuptools.package-data]
+"srs_synthesis" = ["*.txt", "*.md"]

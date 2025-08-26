@@ -23,7 +23,7 @@ import warnings
 import time
 
 
-class SRSSynthesizer:
+class DSSynthesizer:
     """
     Synthesizer for shock response spectrum using damped sinusoids.
     
@@ -974,7 +974,7 @@ def synthesize_shock_spectrum(freq_spec: np.ndarray,
     max_iterations : int, default=100
         Maximum iterations for optimization
     **kwargs : dict
-        Additional parameters passed to SRSSynthesizer.synthesize_srs()
+        Additional parameters passed to DSSynthesizer.synthesize_srs()
         
     Returns:
     --------
@@ -990,7 +990,7 @@ def synthesize_shock_spectrum(freq_spec: np.ndarray,
     >>> acceleration = result['acceleration']
     """
     
-    synthesizer = SRSSynthesizer()
+    synthesizer = DSSynthesizer()
     return synthesizer.synthesize_srs(freq_spec, accel_spec, duration, 
                                     sample_rate, damping_ratio, max_iterations, 
                                     **kwargs)

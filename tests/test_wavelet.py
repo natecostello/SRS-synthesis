@@ -11,11 +11,10 @@ import sys
 import signal
 from contextlib import contextmanager
 
-# Add current directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to path for package imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from srs_wavelet_synthesis import WSSSynthesizer
-from srs_conversion import convert_srs
+from srs_synthesis.wavelet import WSynthesizer
 
 
 @contextmanager
@@ -38,7 +37,7 @@ class TestWSSynthesis(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.synthesizer = WSSSynthesizer()
+        self.synthesizer = WSynthesizer()
         self.test_freq = np.array([10., 50., 100., 200.])    # 4 points
         self.test_accel = np.array([20., 30., 40., 50.])     # 4 points
         self.duration = 0.2                                  # 200ms (>= 1.5/min(freq))
@@ -389,7 +388,7 @@ class TestWaveletSynthesisAlgorithms(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.synthesizer = WSSSynthesizer()
+        self.synthesizer = WSynthesizer()
         self.nspec = 5
         self.f = np.array([10., 25., 50., 100., 200.])
         self.amp_start = np.array([0.01, 0.015, 0.02, 0.025, 0.03])
@@ -464,7 +463,7 @@ class TestAllowInfiniteRetries(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures for infinite retry testing."""
-        self.synthesizer = WSSSynthesizer()
+        self.synthesizer = WSynthesizer()
         # Use challenging constraints that might require multiple attempts
         self.test_freq = np.array([100., 500., 1000.])     # Higher frequencies
         self.test_accel = np.array([50., 75., 100.])       # Higher accelerations
@@ -594,7 +593,7 @@ class TestFastModeOptimizations(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.synthesizer = WSSSynthesizer()
+        self.synthesizer = WSynthesizer()
         # Minimal test case for speed - shorter duration and fewer points
         self.test_freq = np.array([50., 100., 200.])     # 3 points
         self.test_accel = np.array([20., 25., 30.])      # 3 points  
@@ -1487,7 +1486,7 @@ class TestFastModeOptimizations(unittest.TestCase):
         strategies = [1, 2, 3, 4]
         
         # Create synthesizer instance
-        synthesizer = WSSSynthesizer()
+        synthesizer = WSynthesizer()
         
         for strategy in strategies:
             print(f"\nTesting strategy {strategy} with all optimizations...")

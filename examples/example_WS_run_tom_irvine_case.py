@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from srs_wavelet_synthesis import WSSSynthesizer
+from srs_synthesis.wavelet import WSynthesizer
 
 def run_tom_irvine_ws_case():
     """
@@ -63,7 +63,7 @@ def run_tom_irvine_ws_case():
     print(f"\nRunning wavelet synthesis...")
     
     # Create synthesizer and run
-    synthesizer = WSSSynthesizer()
+    synthesizer = WSynthesizer()
     
     result = synthesizer.synthesize_srs(
         freq_spec=freq_spec,

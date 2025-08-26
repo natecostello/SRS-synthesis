@@ -23,7 +23,7 @@ import time
 from scipy.stats import kurtosis
 
 
-class WSSSynthesizer:
+class WSynthesizer:
     """
     Synthesizer for shock response spectrum using wavelet synthesis.
     

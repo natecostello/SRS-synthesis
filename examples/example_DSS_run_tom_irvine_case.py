@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from srs_damped_sine_synthesis import synthesize_shock_spectrum
+from srs_synthesis.damped_sine import DSSynthesizer
 
 def run_tom_irvine_case():
     """
@@ -43,7 +43,9 @@ def run_tom_irvine_case():
     
     print(f"\nRunning synthesis... (this may take several minutes)")
     
-    result = synthesize_shock_spectrum(
+    # Create synthesizer and run synthesis
+    synthesizer = DSSynthesizer()
+    result = synthesizer.synthesize_srs(
         freq_spec=freq_spec,
         accel_spec=accel_spec,
         duration=duration,
