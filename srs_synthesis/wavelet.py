@@ -104,6 +104,7 @@ class WSynthesizer:
                       cw: float = 1.0,      # Crest factor weight
                       kw: float = 1.0,      # Kurtosis weight
                       dskw: float = 1.0,    # Displacement skewness weight
+                      verbose: int = 1,     # Verbosity level (0=silent, 1=results only, 2=full)
                       displacement_limit: float = 1e9) -> Dict[str, Any]:
         """
         Synthesize a time history to match the target SRS specification using wavelets.
@@ -165,6 +166,11 @@ class WSynthesizer:
             The final composite ranking score is:
             score = iw*SRS_rank + ew*error_rank + dw*disp_rank + vw*vel_rank + 
                    aw*accel_rank + cw*crest_rank + kw*kurt_rank + dskw*skew_rank
+        verbose : int, default=1
+            Verbosity level for output control:
+            - 0: Silent mode (no output)
+            - 1: Results only (final metrics and timing) [default]
+            - 2: Full verbose mode (progress info + results)
         displacement_limit : float, default=1e9
             Maximum allowable displacement limit
             
@@ -217,8 +223,9 @@ class WSynthesizer:
             duration = 1.6 / freq_spec[0]
             nt = int(np.round(duration / dt))
         
-        print(f"dt={dt:.6g} sec   dur={duration:.4f} sec  "
-              f"sr={sample_rate:.6g} sample/sec  nt={nt}")
+        if verbose >= 2:
+            print(f"dt={dt:.6g} sec   dur={duration:.4f} sec  "
+                  f"sr={sample_rate:.6g} sample/sec  nt={nt}")
         
         # Interpolate specification to octave spacing
         interp_start_time = time.perf_counter()
@@ -228,7 +235,8 @@ class WSynthesizer:
         interp_time = time.perf_counter() - interp_start_time
         
         nspec = len(f_interp)
-        print(f"Number of interpolated frequencies: {nspec}")
+        if verbose >= 2:
+            print(f"Number of interpolated frequencies: {nspec}")
         
         # Calculate initial amplitude estimates
         amp_start = spec_interp / 16.0
@@ -324,7 +332,8 @@ class WSynthesizer:
         if successful_trials == 0:
             raise RuntimeError("No successful trials completed")
         
-        print(f"\nCompleted {successful_trials} successful trials out of {ntrials}")
+        if verbose >= 2:
+            print(f"\nCompleted {successful_trials} successful trials out of {ntrials}")
         
         # Rank all solutions and select winner - MATLAB style
         iwin, nrank = self._rank_solutions(
@@ -339,7 +348,8 @@ class WSynthesizer:
             iw, ew, dw, vw, aw, cw, kw, dskw, displacement_limit
         )
         
-        print(f"\nOptimum case = {iwin}")
+        if verbose >= 2:
+            print(f"\nOptimum case = {iwin}")
         
         # Generate final time history from winning solution
         acceleration, velocity, displacement = self._generate_final_time_history_matlab(
@@ -387,12 +397,13 @@ class WSynthesizer:
         else:  # metric acceleration
             unit_labels = {'accel': '(m/sec^2)', 'vel': '(m/sec)', 'disp': '(mm)'}
         
-        print(f"Peak Accel = {winning_metrics['peak_accel']:.3f} {unit_labels['accel']}")
-        print(f"Peak Veloc = {winning_metrics['peak_vel']:.3f} {unit_labels['vel']}")
-        print(f"Peak Disp  = {winning_metrics['peak_disp']:.3f} {unit_labels['disp']}")
-        print(f"Crest      = {winning_metrics['crest_factor']:.3f}")
-        print(f"Kurtosis   = {winning_metrics['kurtosis']:.3f}")
-        print(f"Max Error  = {max_error_db:.3f} dB")
+        if verbose >= 1:
+            print(f"Peak Accel = {winning_metrics['peak_accel']:.3f} {unit_labels['accel']}")
+            print(f"Peak Veloc = {winning_metrics['peak_vel']:.3f} {unit_labels['vel']}")
+            print(f"Peak Disp  = {winning_metrics['peak_disp']:.3f} {unit_labels['disp']}")
+            print(f"Crest      = {winning_metrics['crest_factor']:.3f}")
+            print(f"Kurtosis   = {winning_metrics['kurtosis']:.3f}")
+            print(f"Max Error  = {max_error_db:.3f} dB")
         
         # Calculate total timing
         total_time = time.perf_counter() - start_time
@@ -405,7 +416,8 @@ class WSynthesizer:
             'fast_mode_enabled': fast_mode
         }
         
-        print(f"\nTiming: Total={total_time:.3f}s, SRS Coeffs={coeffs_time:.6f}s, Interp={interp_time:.6f}s, Fast Mode={fast_mode}")
+        if verbose >= 1:
+            print(f"\nTiming: Total={total_time:.3f}s, SRS Coeffs={coeffs_time:.6f}s, Interp={interp_time:.6f}s, Fast Mode={fast_mode}")
         
         return {
             'time': time_array,
