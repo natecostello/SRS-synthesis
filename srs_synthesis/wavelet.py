@@ -285,19 +285,6 @@ class WSynthesizer:
         # Main synthesis loop - MATLAB style
         successful_trials = 0
         
-        print("\n             Peak        Peak         Peak         ")
-        print("   Trial     Accel       Vel          Disp      T.Error      I.Error")
-        
-        # Unit labels
-        if units == 'english':
-            unit_labels = {'accel': '(G)', 'vel': '(in/sec)', 'disp': '(in)'}
-        elif units == 'metric':
-            unit_labels = {'accel': '(G)', 'vel': '(m/sec)', 'disp': '(mm)'}
-        else:  # metric acceleration
-            unit_labels = {'accel': '(m/sec^2)', 'vel': '(m/sec)', 'disp': '(mm)'}
-            
-        print(f"             {unit_labels['accel']:>12} {unit_labels['vel']:>12} {unit_labels['disp']:>12}")
-        
         # MATLAB-style main loop (inn = trial index, matches MATLAB exactly)
         for inn in range(ntrials):  # inn is 0-based in Python, but conceptually matches MATLAB inn
             try:
@@ -391,6 +378,14 @@ class WSynthesizer:
             'kurtosis': skm[iwin],
             'disp_skew': sdskm[iwin]
         }
+        
+        # Define unit labels for output formatting
+        if units == 'english':
+            unit_labels = {'accel': '(G)', 'vel': '(in/sec)', 'disp': '(in)'}
+        elif units == 'metric':
+            unit_labels = {'accel': '(G)', 'vel': '(m/sec)', 'disp': '(mm)'}
+        else:  # metric acceleration
+            unit_labels = {'accel': '(m/sec^2)', 'vel': '(m/sec)', 'disp': '(mm)'}
         
         print(f"Peak Accel = {winning_metrics['peak_accel']:.3f} {unit_labels['accel']}")
         print(f"Peak Veloc = {winning_metrics['peak_vel']:.3f} {unit_labels['vel']}")
