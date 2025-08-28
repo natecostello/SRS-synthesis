@@ -187,6 +187,8 @@ class WSynthesizer:
             - 'synthesis_error': Maximum synthesis error (dB)
             - 'wavelet_table': Wavelet parameters [index, amp, freq, nhs, delay]
             - 'ranking_metrics': Performance metrics for winning solution
+            - 'timing': Timing information dictionary
+            - 'random_seed': Random seed used (generated if not provided)
         """
         
         # Start timing
@@ -200,9 +202,14 @@ class WSynthesizer:
         self._validate_inputs(freq_spec, accel_spec, duration, sample_rate, 
                              damping_ratio, ntrials, octave_spacing, strategy)
         
-        # Set random seed if provided
-        if random_seed is not None:
-            np.random.seed(random_seed)
+        # Generate and set random seed
+        seed_was_generated = False
+        if random_seed is None:
+            # Generate a random seed for repeatability
+            random_seed = np.random.randint(0, 2**31 - 1)
+            seed_was_generated = True
+        
+        np.random.seed(random_seed)
         
         # Convert inputs to numpy arrays
         freq_spec = np.asarray(freq_spec, dtype=float)
@@ -211,6 +218,43 @@ class WSynthesizer:
         # Determine sample rate if not provided
         if sample_rate is None:
             sample_rate = 10.0 * freq_spec[-1]
+        
+        # Display input parameters and stats when verbose >= 2
+        if verbose >= 2:
+            # Strategy names mapping
+            strategy_names = {
+                1: "Random",
+                2: "Forward Sweep", 
+                3: "Reverse Sweep",
+                4: "Exponential Decay",
+                5: "Mixed Strategy"
+            }
+            
+            # Calculate frequencies per octave for octave spacing
+            octave_fraction = self.octave_options[octave_spacing]
+            freq_per_octave = 1.0 / octave_fraction
+            
+            print("\nINPUT SRS SPECIFICATION:")
+            print(f"Frequency range       : {freq_spec[0]:.3f} - {freq_spec[-1]:.3f} Hz ({len(freq_spec)} points)")
+            print(f"Acceleration range    : {accel_spec.min():.3f} - {accel_spec.max():.3f} G")
+            print(f"Peak acceleration     : {accel_spec.max():.3f} G")
+            
+            print("\nSYNTHESIS PARAMETERS:")
+            print(f"Duration              : {duration:.3f} seconds")
+            print(f"Sample rate           : {sample_rate:.1f} Hz")
+            print(f"Damping ratio         : {damping_ratio:.4f}")
+            print(f"Number of trials      : {ntrials}")
+            print(f"Octave spacing        : {octave_spacing} ({freq_per_octave:.1f} frequencies per octave)")
+            print(f"Strategy              : {strategy} ({strategy_names.get(strategy, 'Unknown')})")
+            print(f"Units                 : {units}")
+            seed_source = "generated" if seed_was_generated else "provided"
+            print(f"Random seed           : {random_seed} ({seed_source})")
+            print(f"Allow infinite retries: {allow_infinite_retries}")
+            print(f"Fast mode             : {fast_mode}")
+            print(f"Displacement limit    : {displacement_limit:.6g}")
+            print(f"Ranking weights       : iw={iw}, ew={ew}, dw={dw}, vw={vw}")
+            print(f"                      : aw={aw}, cw={cw}, kw={kw}, dskw={dskw}")
+            print(f"Verbose level         : {verbose}")
         
         dt = 1.0 / sample_rate
         nt = int(np.round(duration / dt))
@@ -223,10 +267,6 @@ class WSynthesizer:
             duration = 1.6 / freq_spec[0]
             nt = int(np.round(duration / dt))
         
-        if verbose >= 2:
-            print(f"dt={dt:.6g} sec   dur={duration:.4f} sec  "
-                  f"sr={sample_rate:.6g} sample/sec  nt={nt}")
-        
         # Interpolate specification to octave spacing
         interp_start_time = time.perf_counter()
         f_interp, spec_interp = self._interpolate_specification(
@@ -235,8 +275,8 @@ class WSynthesizer:
         interp_time = time.perf_counter() - interp_start_time
         
         nspec = len(f_interp)
-        if verbose >= 2:
-            print(f"Number of interpolated frequencies: {nspec}")
+        
+
         
         # Calculate initial amplitude estimates
         amp_start = spec_interp / 16.0
@@ -332,8 +372,7 @@ class WSynthesizer:
         if successful_trials == 0:
             raise RuntimeError("No successful trials completed")
         
-        if verbose >= 2:
-            print(f"\nCompleted {successful_trials} successful trials out of {ntrials}")
+
         
         # Rank all solutions and select winner - MATLAB style
         iwin, nrank = self._rank_solutions(
@@ -347,9 +386,6 @@ class WSynthesizer:
             sdskm[:successful_trials],    # disp_skew
             iw, ew, dw, vw, aw, cw, kw, dskw, displacement_limit
         )
-        
-        if verbose >= 2:
-            print(f"\nOptimum case = {iwin}")
         
         # Generate final time history from winning solution
         acceleration, velocity, displacement = self._generate_final_time_history_matlab(
@@ -397,16 +433,20 @@ class WSynthesizer:
         else:  # metric acceleration
             unit_labels = {'accel': '(m/sec^2)', 'vel': '(m/sec)', 'disp': '(mm)'}
         
-        if verbose >= 1:
-            print(f"Peak Accel = {winning_metrics['peak_accel']:.3f} {unit_labels['accel']}")
-            print(f"Peak Veloc = {winning_metrics['peak_vel']:.3f} {unit_labels['vel']}")
-            print(f"Peak Disp  = {winning_metrics['peak_disp']:.3f} {unit_labels['disp']}")
-            print(f"Crest      = {winning_metrics['crest_factor']:.3f}")
-            print(f"Kurtosis   = {winning_metrics['kurtosis']:.3f}")
-            print(f"Max Error  = {max_error_db:.3f} dB")
-        
         # Calculate total timing
         total_time = time.perf_counter() - start_time
+        
+        if verbose >= 1:
+            print("\nRESULT:")
+            print(f"Peak Accel            : {winning_metrics['peak_accel']:.3f} {unit_labels['accel']}")
+            print(f"Peak Veloc            : {winning_metrics['peak_vel']:.3f} {unit_labels['vel']}")
+            print(f"Peak Disp             : {winning_metrics['peak_disp']:.3f} {unit_labels['disp']}")
+            print(f"Crest                 : {winning_metrics['crest_factor']:.3f}")
+            print(f"Kurtosis              : {winning_metrics['kurtosis']:.3f}")
+            print(f"Max Error             : {max_error_db:.3f} dB")
+            print(f"Timing                : {total_time:.3f}s")
+            if verbose >= 2:
+                print(f"Optimum trial         : {iwin}")
         
         # Add timing information
         timing_info = {
@@ -415,9 +455,6 @@ class WSynthesizer:
             'interp_time': interp_time,
             'fast_mode_enabled': fast_mode
         }
-        
-        if verbose >= 1:
-            print(f"\nTiming: Total={total_time:.3f}s, SRS Coeffs={coeffs_time:.6f}s, Interp={interp_time:.6f}s, Fast Mode={fast_mode}")
         
         return {
             'time': time_array,
@@ -430,7 +467,8 @@ class WSynthesizer:
             'synthesis_error': max_error_db,
             'wavelet_table': wavelet_table,
             'ranking_metrics': winning_metrics,
-            'timing': timing_info
+            'timing': timing_info,
+            'random_seed': random_seed  # Include the seed used for repeatability
         }
     
     def _validate_inputs(self, freq_spec: np.ndarray, accel_spec: np.ndarray, 
